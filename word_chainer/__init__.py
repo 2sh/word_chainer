@@ -114,4 +114,4 @@ def _main():
 	import sys
 	wc = WordChainer(sys.argv[1])
 	for i in range(sys.argv[2]):
-		print(wc.create_sentence(sys.argv[3:])
+		print(wc.create_sentence(sys.argv[3:]))
