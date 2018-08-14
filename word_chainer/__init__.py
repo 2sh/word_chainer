@@ -20,7 +20,7 @@
 
 from random import choices, choice
 
-class WordChain:
+class WordChainer:
 	def __init__(self, brain):
 		if isinstance(brain, str):
 			brain = open(brain, "r")
@@ -112,6 +112,6 @@ class WordChain:
 def _main():
 	# word_chainer <file> <count> <contains> <max_lookback> <min_lookback>
 	import sys
-	wc = WordChain(sys.argv[1])
+	wc = WordChainer(sys.argv[1])
 	for i in range(sys.argv[2]):
 		print(wc.create_sentence(sys.argv[3:])
