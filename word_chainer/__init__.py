@@ -36,12 +36,23 @@ class WordChainer:
 				self.words.setdefault(word.lower(), set()).add(offset)
 			self.line_offsets.append(offset)
 	
-	def create_sentence(self, contains=None,
+	def create_sentence(self, contains=None, min_words=1,
 			max_lookback=2, min_lookback=None):
 		if isinstance(max_lookback, str): max_lookback = int(max_lookback)
 		if isinstance(min_lookback, str): min_lookback = int(min_lookback)
 		if min_lookback is None or max_lookback < min_lookback:
 			min_lookback = max_lookback
+		
+		for try_n in range(20):
+			output = self._create_sentence(contains=contains,
+				max_lookback=max_lookback, min_lookback=min_lookback)
+			if len(output) < int(min_words):
+				continue
+			break
+		return " ".join(output)
+	
+	def _create_sentence(self, **kwargs):
+		contains = kwargs["contains"]
 		
 		if contains:
 			output = contains.split()
@@ -53,50 +64,10 @@ class WordChainer:
 		output_offsets = [self.words[w.lower()] for w in output]
 		
 		is_sentence_start = not contains
-		
 		for is_right in ([False, True] if contains else [True]):
 			while True:
-				minlb = min(len(output), min_lookback)
-				maxlb = min(len(output), max_lookback)
-				
-				possible = {}
-				for val in range(minlb, maxlb+1):
-					if is_right:
-						lookback = output[-val:]
-						lookback_offsets = output_offsets[-val:]
-					else:
-						lookback = output[:val]
-						lookback_offsets = output_offsets[:val]
-					
-					search_string = " " + (" ".join(lookback)) + " "
-					for offset in set.intersection(*lookback_offsets):
-						self.brain.seek(offset)
-						line = " " + self.brain.readline().strip() + " "
-						
-						index = line.lower().find(search_string.lower())
-						if index == -1:
-							continue
-						if(is_sentence_start and
-								minlb < min_lookback and index != 0):
-							continue
-						
-						if is_right:
-							word = line[(index+len(search_string)):]
-						else:
-							word = line[:index]
-						
-						if word:
-							if is_right:
-								word = word.split(" ", 1)[0]
-							else:
-								word = word.rsplit(" ", 1)[-1]
-						else:
-							word = None
-						
-						if val > possible.setdefault(word, val):
-							possible[word] = val
-				
-				word = choices(*zip(*possible.items()))[0]
+				word = self._get_word(output, output_offsets,
+					is_right, is_sentence_start, **kwargs)
 				if word is None:
 					if not is_right:
 						is_sentence_start = True
@@ -107,11 +78,55 @@ class WordChainer:
 				else:
 					output.insert(0, word)
 					output_offsets.insert(0, self.words[word.lower()])
-		return " ".join(output)
+		return output
+
+	def _get_word(self, output, output_offsets, is_right, is_sentence_start,
+			**kwargs):
+		min_lookback = kwargs["min_lookback"]
+		minlb = min(len(output), min_lookback)
+		maxlb = min(len(output), kwargs["max_lookback"])
+		
+		possible = {}
+		for val in range(minlb, maxlb+1):
+			if is_right:
+				lookback = output[-val:]
+				lookback_offsets = output_offsets[-val:]
+			else:
+				lookback = output[:val]
+				lookback_offsets = output_offsets[:val]
+			
+			search_string = " " + (" ".join(lookback)) + " "
+			for offset in set.intersection(*lookback_offsets):
+				self.brain.seek(offset)
+				line = " " + self.brain.readline().strip() + " "
+				
+				index = line.lower().find(search_string.lower())
+				if index == -1:
+					continue
+				if(is_sentence_start and minlb < min_lookback and index != 0):
+					continue
+				
+				if is_right:
+					word = line[(index+len(search_string)):]
+				else:
+					word = line[:index]
+				
+				if word:
+					if is_right:
+						word = word.split(" ", 1)[0]
+					else:
+						word = word.rsplit(" ", 1)[-1]
+				else:
+					word = None
+				
+				if val > possible.setdefault(word, val):
+					possible[word] = val
+		
+		return choices(*zip(*possible.items()))[0]
 
 def _main():
-	# word_chainer <file> <count> <contains> <max_lookback> <min_lookback>
+	# word_chainer <file> <count> <contains> <min_words> <max_lookback> <min_lookback>
 	import sys
 	wc = WordChainer(sys.argv[1])
 	for i in range(int(sys.argv[2])):
-		print(wc.create_sentence(sys.argv[3:]))
+		print(wc.create_sentence(*sys.argv[3:]))
