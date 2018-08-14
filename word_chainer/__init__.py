@@ -38,13 +38,15 @@ class WordChainer:
 	
 	def create_sentence(self, contains=None, min_words=1,
 			max_lookback=2, min_lookback=None):
-		if isinstance(max_lookback, str): max_lookback = int(max_lookback)
-		if isinstance(min_lookback, str): min_lookback = int(min_lookback)
+		max_lookback = int(max_lookback)
 		if min_lookback is None or max_lookback < min_lookback:
 			min_lookback = max_lookback
+		else:
+			min_lookback = int(min_lookback)
 		
 		for try_n in range(20):
 			output = self._create_sentence(contains=contains,
+				min_words=int(min_words),
 				max_lookback=max_lookback, min_lookback=min_lookback)
 			if len(output) < int(min_words):
 				continue
@@ -65,7 +67,7 @@ class WordChainer:
 		
 		is_sentence_start = not contains
 		for is_right in ([False, True] if contains else [True]):
-			while True:
+			for i in range(500+kwargs["min_words"]):
 				word = self._get_word(output, output_offsets,
 					is_right, is_sentence_start, **kwargs)
 				if word is None:
@@ -78,6 +80,8 @@ class WordChainer:
 				else:
 					output.insert(0, word)
 					output_offsets.insert(0, self.words[word.lower()])
+			else:
+				return []
 		return output
 
 	def _get_word(self, output, output_offsets, is_right, is_sentence_start,
