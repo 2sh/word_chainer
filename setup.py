@@ -7,7 +7,7 @@ with open("README.md", "r") as f:
 
 setuptools.setup(
 	name="word_chainer",
-	version="1.0.0",
+	version="1.0.1",
 	
 	author="2sh",
 	author_email="contact@2sh.me",
@@ -20,7 +20,7 @@ setuptools.setup(
 	
 	packages=["word_chainer"],
 	
-	python_requires='>=3.0',
+	python_requires='>=3.6',
 	classifiers=(
 		"Programming Language :: Python :: 3",
 		"License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
